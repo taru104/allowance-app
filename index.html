@@ -14,25 +14,24 @@
     <div class="card">
         <h2>💰 今の残高</h2>
         <p id="balance-display">---円</p>
-        <div class="edit-area">
-            <input type="number" id="edit-balance-input" placeholder="残高を直接入力">
-            <button id="edit-balance-button">更新</button>
-        </div>
     </div>
 
-    <div class="card">
-        <h2>🕒 次のお小遣いまで</h2>
-        <p id="countdown-display">計算中...</p>
+    <div class="card feedback-area">
+        <h2>🎉 メッセージ</h2>
+        <p id="feedback-message">ここにメッセージが表示されます。</p>
     </div>
-
+    
     <div class="card">
         <h2>🛒 お買い物</h2>
-        <input type="number" id="expense-amount" placeholder="金額を入力">
+        <input type="text" id="item-name" placeholder="用途（例: スーパー、外食）">
+        <input type="number" id="expense-amount" placeholder="金額">
         <button id="spend-button">使った！</button>
     </div>
 
     <div class="card">
-        <button id="reset-button">データをリセットする</button>
+        <h2>📜 購入履歴</h2>
+        <ul id="history-list">
+            </ul>
     </div>
 
     <script src="script.js"></script>
