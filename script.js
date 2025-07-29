@@ -5,58 +5,77 @@ window.addEventListener('load', () => {
     const itemNameInput = document.getElementById('item-name');
     const expenseAmountInput = document.getElementById('expense-amount');
     const spendButton = document.getElementById('spend-button');
+    const incomeNameInput = document.getElementById('income-name');
+    const incomeAmountInput = document.getElementById('income-amount');
+    const incomeButton = document.getElementById('income-button');
     const historyList = document.getElementById('history-list');
 
     // --- データ管理 ---
-    let purchases = JSON.parse(localStorage.getItem('okozukaiPurchases')) || [];
+    // ★支出と収入を一つの配列で管理★
+    let transactions = JSON.parse(localStorage.getItem('okozukaiTransactions')) || [];
     let appStartDate = localStorage.getItem('okozukaiStartDate');
-    // 初めて使う場合は、今日の日付を記録
     if (!appStartDate) {
         appStartDate = new Date().toISOString();
         localStorage.setItem('okozukaiStartDate', appStartDate);
     }
 
-    // --- 褒め言葉のバリエーション ---
-    const praiseVariations = [
-        "1000円以下！素晴らしい！🎉",
-        "ナイス節約！その調子！👍",
-        "今日もやりくり上手ですね！✨",
-        "堅実！未来の自分のためにナイスです！",
-        "完璧な予算管理！お見事！💯"
-    ];
+    const praiseVariations = [ "1000円以下！素晴らしい！🎉", "ナイス節約！その調子！👍", "今日もやりくり上手ですね！✨", "堅実！未来の自分のためにナイスです！", "完璧な予算管理！お見事！💯" ];
 
     // --- 初期表示 ---
     updateAll();
-    checkAnniversary(); // ★継続記念日をチェック
+    checkAnniversary();
 
     // --- イベントリスナー ---
+    // 「使った！」ボタン
     spendButton.addEventListener('click', () => {
         const itemName = itemNameInput.value.trim();
         const amount = parseInt(expenseAmountInput.value, 10);
-
         if (!itemName || isNaN(amount) || amount <= 0) {
             alert('用途と正しい金額を入力してください。');
             return;
         }
-
-        const newPurchase = {
-            name: itemName,
-            amount: amount,
-            date: new Date().toISOString()
-        };
-
-        purchases.push(newPurchase);
-        localStorage.setItem('okozukaiPurchases', JSON.stringify(purchases));
-
-        updateAll();
-        
+        // ★type: 'expense'として支出を記録★
+        const newTransaction = { id: Date.now(), type: 'expense', name: itemName, amount: amount, date: new Date().toISOString() };
+        transactions.push(newTransaction);
+        saveAndRerender();
         itemNameInput.value = '';
         expenseAmountInput.value = '';
-
         praiseUser();
     });
 
+    // ★「追加する」ボタン（臨時収入）★
+    incomeButton.addEventListener('click', () => {
+        const incomeName = incomeNameInput.value.trim();
+        const amount = parseInt(incomeAmountInput.value, 10);
+        if (!incomeName || isNaN(amount) || amount <= 0) {
+            alert('収入源と正しい金額を入力してください。');
+            return;
+        }
+        // ★type: 'income'として収入を記録★
+        const newTransaction = { id: Date.now(), type: 'income', name: incomeName, amount: amount, date: new Date().toISOString() };
+        transactions.push(newTransaction);
+        saveAndRerender();
+        incomeNameInput.value = '';
+        incomeAmountInput.value = '';
+        feedbackMessage.textContent = `${incomeName}で${amount.toLocaleString()}円の収入！素晴らしい！`;
+    });
+
+    // 履歴リストのクリックイベント（削除処理）
+    historyList.addEventListener('click', (event) => {
+        if (event.target.classList.contains('delete-btn')) {
+            const idToDelete = parseInt(event.target.dataset.id, 10);
+            if (confirm('この履歴を削除しますか？')) {
+                transactions = transactions.filter(t => t.id !== idToDelete);
+                saveAndRerender();
+            }
+        }
+    });
+
     // --- 関数エリア ---
+    function saveAndRerender() {
+        localStorage.setItem('okozukaiTransactions', JSON.stringify(transactions));
+        updateAll();
+    }
     
     function updateAll() {
         updateBalance();
@@ -66,36 +85,43 @@ window.addEventListener('load', () => {
     function updateBalance() {
         const startDate = new Date(appStartDate);
         const today = new Date();
-        // 経過日数を計算（今日で1日目、明日で2日目...という形）
         const diffTime = today.setHours(0,0,0,0) - startDate.setHours(0,0,0,0);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-        
         const totalAllowance = diffDays * 1000;
-        const totalSpending = purchases.reduce((sum, item) => sum + item.amount, 0);
-        const currentBalance = totalAllowance - totalSpending;
-
+        
+        // ★収入と支出を分けて計算★
+        const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, item) => sum + item.amount, 0);
+        const totalSpending = transactions.filter(t => t.type === 'expense').reduce((sum, item) => sum + item.amount, 0);
+        
+        const currentBalance = totalAllowance + totalIncome - totalSpending;
         balanceDisplay.textContent = `${currentBalance.toLocaleString()}円`;
     }
 
     function renderHistory() {
         historyList.innerHTML = '';
-        [...purchases].reverse().forEach(item => {
+        [...transactions].reverse().forEach(item => {
             const li = document.createElement('li');
             const itemDate = new Date(item.date);
             const dateString = `${itemDate.getMonth() + 1}/${itemDate.getDate()}`;
-            li.textContent = `${dateString}: ${item.name} - ${item.amount.toLocaleString()}円`;
+            
+            // ★収入か支出かで色分け★
+            const amountClass = item.type === 'income' ? 'income-amount' : 'expense-amount';
+            const sign = item.type === 'income' ? '+' : '-';
+
+            li.innerHTML = `
+                <span>${dateString}: ${item.name}</span>
+                <span class="${amountClass}">${sign}${item.amount.toLocaleString()}円</span>
+                <button class="delete-btn" data-id="${item.id}">削除</button>
+            `;
             historyList.appendChild(li);
         });
     }
 
-    // ★ユーザーをほめる関数（バリエーション追加版）★
     function praiseUser() {
         const today = new Date().toDateString();
-        const todaysPurchases = purchases.filter(p => new Date(p.date).toDateString() === today);
+        const todaysPurchases = transactions.filter(t => t.type === 'expense' && new Date(t.date).toDateString() === today);
         const todaysTotal = todaysPurchases.reduce((sum, item) => sum + item.amount, 0);
-
         if (todaysTotal <= 1000) {
-            // 配列からランダムに1つ選ぶ
             const randomIndex = Math.floor(Math.random() * praiseVariations.length);
             feedbackMessage.textContent = praiseVariations[randomIndex];
         } else {
@@ -103,29 +129,22 @@ window.addEventListener('load', () => {
         }
     }
 
-    // ★継続記念日をチェックする関数★
     function checkAnniversary() {
         const startDate = new Date(appStartDate);
         const today = new Date();
         const diffTime = today.setHours(0,0,0,0) - startDate.setHours(0,0,0,0);
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        // 最後に表示した記念日を記録しておき、同じ日に何度も表示しないようにする
         const lastAnniversary = localStorage.getItem('lastAnniversary');
         const todayString = today.toDateString();
-
-        if (lastAnniversary === todayString) return; // 今日すでに表示済みなら何もしない
-
+        if (lastAnniversary === todayString) return;
         let anniversaryMessage = "";
         if (diffDays === 7) {
             anniversaryMessage = "祝・1週間達成！すごい！この調子で頑張ろう！🥳";
         } else if (diffDays === 30) {
             anniversaryMessage = "祝・1ヶ月達成！素晴らしい継続力です！🎊";
         }
-
         if (anniversaryMessage) {
             feedbackMessage.textContent = anniversaryMessage;
-            // 今日表示したことを記録
             localStorage.setItem('lastAnniversary', todayString);
         }
     }
