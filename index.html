@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お小遣い管理アプリ</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+    <h1>お小遣い管理アプリ</h1>
+
+    <div class="card">
+        <h2>💰 今の残高</h2>
+        <p id="balance-display">---円</p>
+        <div class="edit-area">
+            <input type="number" id="edit-balance-input" placeholder="残高を直接入力">
+            <button id="edit-balance-button">更新</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🕒 次のお小遣いまで</h2>
+        <p id="countdown-display">計算中...</p>
+    </div>
+
+    <div class="card">
+        <h2>🛒 お買い物</h2>
+        <input type="number" id="expense-amount" placeholder="金額を入力">
+        <button id="spend-button">使った！</button>
+    </div>
+
+    <div class="card">
+        <button id="reset-button">データをリセットする</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
